@@ -1,56 +1,40 @@
-from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from database import db
-from models import User
+# Notes API
 
-router = APIRouter()
+This is a RESTful API built with FastAPI for managing notes. Users can create, read, update, and delete notes, as well as share notes with other users and search for notes based on keywords.
 
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+## API Endpoints
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+### Authentication Endpoints
+- `POST /api/auth/signup`: Create a new user account.
+- `POST /api/auth/login`: Log in to an existing user account and receive an access token.
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+### Note Endpoints
+- `GET /api/notes`: Get a list of all notes for the authenticated user.
+- `GET /api/notes/{id}`: Get a note by ID for the authenticated user.
+- `POST /api/notes`: Create a new note for the authenticated user.
+- `PUT /api/notes/{id}`: Update an existing note by ID for the authenticated user.
+- `DELETE /api/notes/{id}`: Delete a note by ID for the authenticated user.
+- `POST /api/notes/{id}/share`: Share a note with another user for the authenticated user.
+- `GET /api/search?q={query}`: Search for notes based on keywords for the authenticated user.
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+## Database Choice
 
-def create_access_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+We chose MongoDB as the database for this project due to its flexibility, scalability, and ease of use with FastAPI. MongoDB's document-based model allows for storing notes as JSON-like documents, making it suitable for this application.
 
-def get_user(username: str):
-    return db.users.find_one({"username": username})
+## Running the Code
 
-def authenticate_user(username: str, password: str):
-    user = get_user(username)
-    if not user:
-        return False
-    if not verify_password(password, user['password']):
-        return False
-    return user
+1. Clone the repository:
+2. Install dependencies:
+   cd notes-api
+   pip install -r requirements.txt
+3. Set up the database (if using MongoDB):
+- Ensure MongoDB is installed and running.
+- Update the connection string in `database.py` if necessary.
 
-@router.post("/api/auth/signup")
-async def signup(user: User):
-    user_exists = get_user(user.username)
-    if user_exists:
-        raise HTTPException(status_code=400, detail="Username already registered")
-    user.password = get_password_hash(user.password)
-    db.users.insert_one(user.dict())
-    return {"message": "User created successfully"}
+4. Run the FastAPI application:
+5. Access the API at http://localhost:8000.
 
-@router.post("/api/auth/login")
-async def login(form_data: User):
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user["username"]}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
+## Running Tests
+
+1. Navigate to the project directory:
+2. Run the tests using pytest:
